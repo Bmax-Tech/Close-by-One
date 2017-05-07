@@ -8,7 +8,7 @@ extern int errno; // globally holds the error no
 int data_size; // holds the data set size read from .cxt file
 int attribute_size; // holds the attribute size read from .cxt file
 char **dataset_obj; // holds data set objects` names from .cxt file
-int *dataset_atr; // holds data set attribute list from .cxt file
+char **dataset_atr; // holds data set attribute list from .cxt file
 int **cross_table; // holds data set cross table from .cxt file
 int concept_count = 0; // holds generated concept count
 
@@ -86,7 +86,7 @@ void loadData(char *file_path) {
                     } else if(line_count == 2){
                         // attribute size found
                         attribute_size = atoi(buffer);
-                        dataset_atr = (int *)malloc(sizeof(int) * attribute_size); // allocate data set attribute list size
+                        dataset_atr = (char **)malloc(sizeof(char*) * attribute_size); // allocate data set attribute list size
                         // set cross table memory
                         cross_table = malloc(sizeof(int*)*data_size);
                     } else if(line_count > 2 && line_count <= (data_size+2)){
@@ -95,7 +95,9 @@ void loadData(char *file_path) {
                         strcpy(dataset_obj[obj_count++],buffer);
                     } else if(line_count > (2+data_size) && line_count <= (2+data_size+attribute_size)){
                         // read attributes
-                        dataset_atr[atr_count++] = atoi(buffer);
+                        // dataset_atr[atr_count++] = atoi(buffer);
+                        dataset_atr[atr_count] = malloc(sizeof(char)*strlen(buffer)); // allocate each char array indexes
+                        strcpy(dataset_atr[atr_count++],buffer);
                         obj_count = 0; // reset obj count
                     } else if(line_count > (2+data_size+attribute_size)){
                         // read cross table
