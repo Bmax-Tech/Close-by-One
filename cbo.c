@@ -34,7 +34,7 @@ int main(){
     char file_path[256]; // hold data source
 
     // get data source file path as user input
-    printf("Enter data source name with extension : ");
+    printf("Enter data source path with name (ex: dataset/tealady.cxt) : ");
     scanf("%s",file_path);
     
     loadData(file_path); // read data from file path
@@ -95,7 +95,6 @@ void loadData(char *file_path) {
                         strcpy(dataset_obj[obj_count++],buffer);
                     } else if(line_count > (2+data_size) && line_count <= (2+data_size+attribute_size)){
                         // read attributes
-                        // dataset_atr[atr_count++] = atoi(buffer);
                         dataset_atr[atr_count] = malloc(sizeof(char)*strlen(buffer)); // allocate each char array indexes
                         strcpy(dataset_atr[atr_count++],buffer);
                         obj_count = 0; // reset obj count
@@ -280,18 +279,17 @@ void makeIntent(int *intent,int *extent,int attr_index){
 bool canonicity(int *attr,int *intent,int attr_index){
     bool status = false;
     int i;
-    int test=0;
+    int found_c=0;
     // build left set
     for(i=0;i<attr_index;i++){
         if(attr[i] == 1 && intent[i] == 1){
             status = true;
-            test--;
             break;
         } else if(attr[i] == 0 && intent[i] == 0){
-            test++;
+            found_c++;
         }
     }
-    if(test == 0 && !status){
+    if(found_c > 0 && !status){
         status = true;
     }
     return status;
