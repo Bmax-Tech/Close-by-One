@@ -171,7 +171,7 @@ void computeConceptFrom(int *obj,int *attr,int attr_index){
     processConcept(obj,attr);
     // 2. go through attribute list
     int j;
-    for(j=attr_index;j<attribute_size-1;j++){
+    for(j=attr_index;j<attribute_size;j++){
         // 3. check current attribute exist or not
         if(!checkAttribute(j,attr)){
             // 4. make extent
@@ -225,22 +225,14 @@ bool checkAttribute(int j,int *attr){
 // make extent
 void makeExtent(int *extent,int *obj,int attr_index){
     int i,z;
-    int ext_count=0;
     printf("extent (attr : %d): ",attr_index);
     // go through cross table
     for(i=0;i<data_size;i++){
-        extent[ext_count] = -1;
-        if(cross_table[i][attr_index] == 1){
-            // go through local obj list
-            for(z=0;z<data_size;z++){
-                if(i == obj[z]){
-                    extent[ext_count] = i; // set object index to extent list
-                    break;
-                }
-            }
+        extent[i] = -1;
+        if(cross_table[i][attr_index] == 1 && obj[i] != -1){
+            extent[i] = i; // set object index to extent list
         }
-        printf("%d ",extent[ext_count]);
-        ext_count++;
+        printf("%d ",extent[i]);
     }
     printf("\n");
 }
@@ -248,29 +240,37 @@ void makeExtent(int *extent,int *obj,int attr_index){
 // make intent
 void makeIntent(int *intent,int *extent,int attr_index){
     int i,a;
-    int int_count=0;
+    int empty_count=0;
     printf("intent (attr : %d): ",attr_index);
+    // check extent is empty set
+    for(i=0;i<data_size;i++){
+        if(extent[i] != -1){
+            empty_count++;
+        }
+    }
     for(a=0;a<attribute_size;a++){
-        bool status = true;
-        bool through = false; // to check at least single extent found
-        for(i=0;i<data_size;i++){
-            // check extent available
-            if(extent[i] != -1){
-                through = true;
-                // check related cross table index of current exten attribute availability
-                if(cross_table[i][a] != 1){
-                    status = false;
-                    break;
+        // validate on empty extent set
+        if(empty_count != data_size){
+            bool status = true;
+            for(i=0;i<data_size;i++){
+                // check extent available
+                if(extent[i] != -1){
+                    // check related cross table index of current exten attribute availability
+                    if(cross_table[i][a] != 1){
+                        status = false;
+                        break;
+                    }
                 }
             }
-        }
-        if(status && through){
-            intent[int_count] = 1;
+            if(status){
+                intent[a] = 1;
+            } else {
+                intent[a] = 0;
+            }
         } else {
-            intent[int_count] = 0;
+            intent[a] = 1;
         }
-        printf("%d ",intent[int_count]);
-        int_count++;
+        printf("%d ",intent[a]);
     }
     printf("\n");
 }
@@ -278,19 +278,51 @@ void makeIntent(int *intent,int *extent,int attr_index){
 // perform canonicity test
 bool canonicity(int *attr,int *intent,int attr_index){
     bool status = false;
+    bool attr_empty=false;
+    bool intent_empty=false;
     int i;
-    int found_c=0;
-    // build left set
-    for(i=0;i<attr_index;i++){
-        if(attr[i] == 1 && intent[i] == 1){
-            status = true;
-            break;
-        } else if(attr[i] == 0 && intent[i] == 0){
-            found_c++;
+    int emp=0;
+    // 1. check empty set for attr
+    for(i=0;i<attribute_size;i++){
+        if(attr[i] == 0){
+            emp++;
         }
     }
-    if(found_c > 0 && !status){
+    if(emp == attribute_size){
+        attr_empty = true;
+    }
+
+    // 2. check empty set for intent
+    emp=0; // reset
+    for(i=0;i<attribute_size;i++){
+        if(attr[i] == 0){
+            emp++;
+        }
+    }
+    if(emp == attribute_size){
+        intent_empty = true;
+    }
+
+    if(attr_empty && intent_empty){
+        // both sets are empty
         status = true;
+    } else {
+        for(i=0;i<attr_index;i++){
+            if(attr[i] == 1 && intent[i] == 1){
+                status = true;
+            } 
+            else if((attr_empty && intent[i] == 1) || (intent_empty && attr[i] == 1)){
+                status = false;
+                break;
+            }
+            else if((attr[i] != 1 && intent[i] == 1) || (attr[i] == 1 && intent[i] != 1)) {
+                status = false;
+                break;
+            }
+        }
+        if(i == 0){
+            status = true;
+        }
     }
     return status;
 }
