@@ -277,52 +277,49 @@ void makeIntent(int *intent,int *extent,int attr_index){
 
 // perform canonicity test
 bool canonicity(int *attr,int *intent,int attr_index){
-    bool status = false;
-    bool attr_empty=false;
-    bool intent_empty=false;
+    bool status=false;
+    int set_1[attr_index];
+    int set_2[attr_index];
+    int set_1_c = 0;// holds set 1 found count
+    int set_2_c = 0;// holds set 2 found count
     int i;
-    int emp=0;
-    // 1. check empty set for attr
-    for(i=0;i<attribute_size;i++){
-        if(attr[i] == 0){
-            emp++;
+    // 1. check on atribute list
+    for(i=0;i<attr_index;i++){
+        if(attr[i]==1){
+            set_1_c++;
+            set_1[i] = 1;
+        } else {
+            set_1[i] = 0;
         }
     }
-    if(emp == attribute_size){
-        attr_empty = true;
-    }
 
-    // 2. check empty set for intent
-    emp=0; // reset
-    for(i=0;i<attribute_size;i++){
-        if(attr[i] == 0){
-            emp++;
+    // 2. check on intent list
+    for(i=0;i<attr_index;i++){
+        if(intent[i]==1){
+            set_2_c++;
+            set_2[i] = 1;
+        } else {
+            set_2[i] = 0;
         }
     }
-    if(emp == attribute_size){
-        intent_empty = true;
-    }
 
-    if(attr_empty && intent_empty){
-        // both sets are empty
+    if(set_1_c == 0 && set_2_c == 0){
+        // both are empty set
         status = true;
-    } else {
+    } else if((set_1_c != 0 && set_2_c == 0) || (set_1_c == 0 && set_2_c != 0)) {
+        // found some element(s) on either of set
+        status = false;
+    } else if(set_1_c == set_2_c){
+        // found element(s) on both sets
         for(i=0;i<attr_index;i++){
-            if(attr[i] == 1 && intent[i] == 1){
+            if(set_1[i] != set_2[i]){
+                status = false;
+                break;
+            } else {
                 status = true;
-            } 
-            else if((attr_empty && intent[i] == 1) || (intent_empty && attr[i] == 1)){
-                status = false;
-                break;
             }
-            else if((attr[i] != 1 && intent[i] == 1) || (attr[i] == 1 && intent[i] != 1)) {
-                status = false;
-                break;
-            }
-        }
-        if(i == 0){
-            status = true;
         }
     }
-    return status;
+
+    return status;    
 }
