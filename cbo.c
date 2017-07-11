@@ -48,7 +48,7 @@ int main() {
     int ini_attr[attribute_size]; // initial concept attribute list
     buildInitialConcept(ini_obj, ini_attr); // make object and attribute list
 
-    concept_latice = malloc(data_size * sizeof(struct concept_t)); // allocate memory on concept latice
+    concept_latice = malloc(data_size * 999999 * sizeof(struct concept_t)); // allocate memory on concept latice
 
     computeConceptFrom(ini_obj, ini_attr, 0); // invoke Close-by-One
 
