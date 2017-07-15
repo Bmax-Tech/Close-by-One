@@ -36,12 +36,6 @@ void makeIntent(int *intent, int *extent, int attr_index);
 bool canonicity(int *attr, int *intent, int attr_index);
 
 int main(int argc, char *argv[]) {
-    //    char file_path[256]; // hold data source
-//
-//    // get data source file path as user input
-//    printf("Enter data source path with name (ex: dataset/tealady.cxt) : ");
-//    scanf("%s", file_path);
-
     loadData(argv[1]); // read data from file path
 
     int ini_obj[data_size]; // initial concept object list
@@ -53,8 +47,6 @@ int main(int argc, char *argv[]) {
     computeConceptFrom(ini_obj, ini_attr, 0); // invoke Close-by-One
 
     printf("\nTotal Concepts : %d\n\n", concept_count);
-
-//    getchar();
 
     return 0;
 }
