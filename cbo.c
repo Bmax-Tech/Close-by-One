@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
 
+clock_t start, end;
 extern int errno; // globally holds the error no
 int data_size; // holds the data set size read from .cxt file
 int attribute_size; // holds the attribute size read from .cxt file
@@ -11,12 +13,12 @@ int **cross_table; // holds data set cross table from .cxt file
 int concept_count = 0; // holds generated concept count
 
 // define concept_t for hold each concept objects and attribute sets
-struct concept_t {
+typedef struct {
     int *objects;
     int *attributes;
-};
+} concept_t;
 
-struct concept_t *concept_latice; // holds main concept latice, generated output
+concept_t *concept_latice; // holds main concept latice, generated output
 
 // local functions
 void loadData(char *file_path);
@@ -42,11 +44,15 @@ int main(int argc, char *argv[]) {
     int ini_attr[attribute_size]; // initial concept attribute list
     buildInitialConcept(ini_obj, ini_attr); // make object and attribute list
 
-    concept_latice = malloc(data_size * 999999 * sizeof(struct concept_t)); // allocate memory on concept latice
+    concept_latice = malloc(
+            data_size * attribute_size * sizeof(concept_t *)); // allocate memory on concept latice
 
+    start = clock(); // start timing
     computeConceptFrom(ini_obj, ini_attr, 0); // invoke Close-by-One
+    end = clock(); // stop timing
 
     printf("\nTotal Concepts : %d\n\n", concept_count);
+    printf("execution time : %f seconds\n\n",((double)(end - start) / CLOCKS_PER_SEC));
 
     return 0;
 }
@@ -82,7 +88,7 @@ void loadData(char *file_path) {
                         // attribute size found
                         attribute_size = atoi(buffer);
                         // set cross table memory
-                        cross_table = malloc(sizeof(int *) * data_size);
+                        cross_table = (int **) malloc(sizeof(int *) * data_size);
                     } else if (line_count > 2 && line_count <= (data_size + 2)) {
                         // read data set objects
                         obj_count++;
@@ -92,7 +98,8 @@ void loadData(char *file_path) {
                         obj_count = 0; // reset obj count
                     } else if (line_count > (2 + data_size + attribute_size)) {
                         // read cross table
-                        cross_table[obj_count] = malloc(sizeof(int) * attribute_size); // allocate cross table row
+                        cross_table[obj_count] = (int *) malloc(
+                                sizeof(int) * attribute_size); // allocate cross table row
                         int x;
                         for (x = 0; x < attribute_size; x++) {
                             // check attribute present or not
@@ -187,7 +194,8 @@ void processConcept(int *obj, int *attr) {
     printf("Concept - %d\n\n", concept_count);
     int i;
     // set objects details on concept latice
-    concept_latice[concept_count].objects = malloc(sizeof(int *) * data_size);
+//    concept_latice[concept_count] = (concept_t)malloc(sizeof(concept_t));
+    concept_latice[concept_count].objects = (int *) malloc(sizeof(int) * data_size);
     printf("Object Set : ");
     for (i = 0; i < data_size; i++) {
         concept_latice[concept_count].objects[i] = obj[i];
@@ -195,7 +203,7 @@ void processConcept(int *obj, int *attr) {
     }
     printf("\n");
     // set attribute details on concept latice
-    concept_latice[concept_count].attributes = malloc(sizeof(int *) * attribute_size);
+    concept_latice[concept_count].attributes = (int *) malloc(sizeof(int) * attribute_size);
     printf("Attribute Set : ");
     for (i = 0; i < attribute_size; i++) {
         concept_latice[concept_count].attributes[i] = attr[i];
