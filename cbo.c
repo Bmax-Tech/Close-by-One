@@ -285,16 +285,15 @@ bool canonicity(int *attr, int *intent, int attr_index) {
     int i;
     // 1. check on atribute list
     for (i = 0; i < attr_index; i++) {
+        // check attr set
         if (attr[i] == 1) {
             set_1_c++;
             set_1[i] = 1;
         } else {
             set_1[i] = 0;
         }
-    }
 
-    // 2. check on intent list
-    for (i = 0; i < attr_index; i++) {
+        // check intent set
         if (intent[i] == 1) {
             set_2_c++;
             set_2[i] = 1;
