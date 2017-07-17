@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
     end = clock(); // stop timing
 
     printf("\nTotal Concepts : %d\n\n", concept_count);
-    printf("execution time : %f seconds\n\n",((double)(end - start) / CLOCKS_PER_SEC));
+    printf("execution time : %f seconds\n\n", ((double) (end - start) / CLOCKS_PER_SEC));
 
     return 0;
 }
@@ -228,7 +228,7 @@ void makeExtent(int *extent, int *obj, int attr_index) {
     printf("extent (attr : %d): ", attr_index);
     // go through cross table
     for (i = 0; i < data_size; i++) {
-        extent[i] = -1;
+        extent[i] = -1; // set default value
         if (cross_table[i][attr_index] == 1 && obj[i] != -1) {
             extent[i] = i; // set object index to extent list
         }
@@ -244,7 +244,7 @@ void makeIntent(int *intent, int *extent, int attr_index) {
     printf("intent (attr : %d): ", attr_index);
     // check extent is empty set
     for (i = 0; i < data_size; i++) {
-        if (extent[i] != -1) {
+        if (extent[i] == -1) {
             empty_count++;
         }
     }
