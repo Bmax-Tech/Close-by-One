@@ -14,7 +14,7 @@
 #include <vector_types.h>
 
 // CUDA device Max Thread Blocks
-int THREADS_PER_BLOCK = 1024;
+int THREADS_PER_BLOCK = 32;
 
 clock_t start, end;
 extern int errno; // globally holds the error no
@@ -56,6 +56,8 @@ __global__ void makeIntentKernel(int *intent, int *extent, int *cross_objects,
 		int empty_count, int rows, int cols);
 __global__ void canonicityKernel(int *set_1, int *set_1_c, int *set_2,
 		int *set_2_c, int *attr, int *intent, int cols);
+__global__ void canonicityKernelSetCheck(int *set_1, int *set_2, bool *status,
+		int cols);
 
 int main(int argc, char *argv[]) {
 	loadData(argv[1]); // read data from file path
@@ -344,68 +346,47 @@ void makeIntent(int *intent, int *extent, int attr_index) {
 
 // perform canonicity test
 bool canonicity(int *attr, int *intent, int attr_index) {
-	bool status = false;
+	bool status = true;
 	int set_1[attr_index];
 	int set_2[attr_index];
 	int set_1_c = 0; // holds set 1 found count
 	int set_2_c = 0; // holds set 2 found count
-	int i;
 
 	// 1. check on attribute list
-	for (i = 0; i < attr_index; i++) {
-		// check attr set
-		if (attr[i] == 1) {
-			set_1_c++;
-			set_1[i] = 1;
-		} else {
-			set_1[i] = 0;
-		}
-
-		// check intent set
-		if (intent[i] == 1) {
-			set_2_c++;
-			set_2[i] = 1;
-		} else {
-			set_2[i] = 0;
-		}
-	}
-
 	// --------------------------------------------------------------------------------------------------------------
 	// >>> Run CUDA Kernel <<<
-//	int *d_set_1;
-//	int *d_set_2;
-//	int *d_set_1_c;
-//	int *d_set_2_c;
-//	int *d_attr;
-//	int *d_intent;
-//	cudaMalloc((void**) &d_set_1, sizeof(int) * attr_index);
-//	cudaMalloc((void**) &d_set_2, sizeof(int) * attr_index);
-//	cudaMalloc((void**) &d_set_1_c, sizeof(int));
-//	cudaMalloc((void**) &d_set_2_c, sizeof(int));
-//	cudaMalloc((void**) &d_attr, sizeof(int) * attribute_size);
-//	cudaMalloc((void**) &d_intent, sizeof(int) * attribute_size);
-//	cudaMemcpy(d_set_1_c, &set_1_c, sizeof(int), cudaMemcpyHostToDevice);
-//	cudaMemcpy(d_set_2_c, &set_2_c, sizeof(int), cudaMemcpyHostToDevice);
-//	cudaMemcpy(d_attr, attr, sizeof(int) * attribute_size,
-//			cudaMemcpyHostToDevice);
-//	cudaMemcpy(d_intent, intent, sizeof(int) * attribute_size,
-//			cudaMemcpyHostToDevice);
-//	int blocksPerGrid = getBlocksPerGrid(attr_index);
-//	canonicityKernel<<<blocksPerGrid, THREADS_PER_BLOCK>>>(d_set_1, d_set_1_c,
-//			d_set_2, d_set_2_c, d_attr, d_intent, attr_index);
-//	cudaMemcpy(&set_1_c, d_set_1_c, sizeof(int), cudaMemcpyDeviceToHost);
-//	cudaMemcpy(&set_2_c, d_set_2_c, sizeof(int), cudaMemcpyDeviceToHost);
-//	cudaMemcpy(set_1, d_set_1, sizeof(int) * attr_index,
-//			cudaMemcpyDeviceToHost);
-//	cudaMemcpy(set_2, d_set_2, sizeof(int) * attr_index,
-//			cudaMemcpyDeviceToHost);
-//	cudaDeviceSynchronize(); // force host to pause until the copying is done
-//	cudaFree(d_set_1);
-//	cudaFree(d_set_2);
-//	cudaFree(d_set_1_c);
-//	cudaFree(d_set_2_c);
-//	cudaFree(d_attr);
-//	cudaFree(d_intent);
+	int *d_set_1;
+	int *d_set_2;
+	int *d_set_1_c;
+	int *d_set_2_c;
+	int *d_attr;
+	int *d_intent;
+	cudaMalloc((void**) &d_set_1, sizeof(int) * attr_index);
+	cudaMalloc((void**) &d_set_2, sizeof(int) * attr_index);
+	cudaMalloc((void**) &d_set_1_c, sizeof(int));
+	cudaMalloc((void**) &d_set_2_c, sizeof(int));
+	cudaMalloc((void**) &d_attr, sizeof(int) * attribute_size);
+	cudaMalloc((void**) &d_intent, sizeof(int) * attribute_size);
+	cudaMemcpy(d_set_1_c, &set_1_c, sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_set_2_c, &set_2_c, sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(d_attr, attr, sizeof(int) * attribute_size,
+			cudaMemcpyHostToDevice);
+	cudaMemcpy(d_intent, intent, sizeof(int) * attribute_size,
+			cudaMemcpyHostToDevice);
+	int blocksPerGrid = getBlocksPerGrid(attr_index);
+	canonicityKernel<<<blocksPerGrid, THREADS_PER_BLOCK>>>(d_set_1, d_set_1_c,
+			d_set_2, d_set_2_c, d_attr, d_intent, attr_index);
+	cudaMemcpy(&set_1_c, d_set_1_c, sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(&set_2_c, d_set_2_c, sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(set_1, d_set_1, sizeof(int) * attr_index,
+			cudaMemcpyDeviceToHost);
+	cudaMemcpy(set_2, d_set_2, sizeof(int) * attr_index,
+			cudaMemcpyDeviceToHost);
+	cudaDeviceSynchronize(); // force host to pause until the copying is done
+	cudaFree(d_set_1_c);
+	cudaFree(d_set_2_c);
+	cudaFree(d_attr);
+	cudaFree(d_intent);
 	// --------------------------------------------------------------------------------------------------------------
 
 	if (set_1_c == 0 && set_2_c == 0) {
@@ -417,35 +398,47 @@ bool canonicity(int *attr, int *intent, int attr_index) {
 		status = false;
 	} else if (set_1_c == set_2_c) {
 		// found element(s) on both sets
-		for (i = 0; i < attr_index; i++) {
-			if (set_1[i] != set_2[i]) {
-				status = false;
-				break;
-			} else {
-				status = true;
-			}
-		}
+		// ----------------------------------------------------------------------------------------------------------
+		// >>> Run CUDA Kernel <<<
+		bool *d_status;
+		cudaMalloc((void**) &d_status, sizeof(bool));
+		cudaMemcpy(d_status, &status, sizeof(bool), cudaMemcpyHostToDevice);
+		blocksPerGrid = getBlocksPerGrid(attr_index);
+		canonicityKernelSetCheck<<<blocksPerGrid, THREADS_PER_BLOCK>>>(d_set_1,
+				d_set_2, d_status, attr_index);
+		cudaMemcpy(&status, d_status, sizeof(bool), cudaMemcpyDeviceToHost);
+		cudaDeviceSynchronize(); // force host to pause until the copying is done
+		cudaFree(d_status);
+		// ----------------------------------------------------------------------------------------------------------
+	} else {
+		status = false;
 	}
+
+	// --------------------------------------------------------------------------------------------------------------
+	// clear up device set_1 and set_2
+	cudaFree(d_set_1);
+	cudaFree(d_set_2);
+	// --------------------------------------------------------------------------------------------------------------
 
 	return status;
 }
 
 // Generate Blocks Per Grid for given size
 int getBlocksPerGrid(int size) {
-	int blocksPerGrid = (size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-	if (blocksPerGrid == 0) {
-		blocksPerGrid = 1;
+	int blocksPerGrid = size / THREADS_PER_BLOCK;
+	if ((size % THREADS_PER_BLOCK) != 0) {
+		blocksPerGrid++;
 	}
 	return blocksPerGrid;
 }
 
-// **************************************************************************************************************
+// ******************************************************************************************************************
 // CUDA Kernels
-// **************************************************************************************************************
+// ******************************************************************************************************************
 
 // CUDA Kernel to process - 1 Loop
 __global__ void processConceptKernel(int *set_1, int *set_2, int size) {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (i < size)
 		set_2[i] = set_1[i];
 }
@@ -453,7 +446,7 @@ __global__ void processConceptKernel(int *set_1, int *set_2, int size) {
 // CUDA Kernel to make Extent
 __global__ void makeExtentKernel(int *extent, int *obj, int *cross_objects,
 		int attr_index, int rows, int cols) {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (i < rows) {
 		extent[i] = -1;
 		if (cross_objects[i * cols + attr_index] == 1 && obj[i] != -1) {
@@ -465,7 +458,7 @@ __global__ void makeExtentKernel(int *extent, int *obj, int *cross_objects,
 // CUDA Kernel to make Extent Empty count on Intent making
 __global__ void makeIntentKernelOnExtentEmpty(int *extent, int *empty_count,
 		int size) {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (i < size) {
 		if (extent[i] == -1) {
 			empty_count++;
@@ -476,7 +469,7 @@ __global__ void makeIntentKernelOnExtentEmpty(int *extent, int *empty_count,
 // CUDA Kernel to make Intent
 __global__ void makeIntentKernel(int *intent, int *extent, int *cross_objects,
 		int empty_count, int rows, int cols) {
-	int index = blockIdx.x * blockDim.x + threadIdx.x;
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (index < cols) {
 		if (empty_count != rows) {
 			bool status = true;
@@ -505,11 +498,11 @@ __global__ void makeIntentKernel(int *intent, int *extent, int *cross_objects,
 // CUDA Kernel to proccess canonicity test
 __global__ void canonicityKernel(int *set_1, int *set_1_c, int *set_2,
 		int *set_2_c, int *attr, int *intent, int cols) {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (i < cols) {
 		// check attr set
 		if (attr[i] == 1) {
-			set_1_c++;
+			*set_1_c = *set_1_c + 1;
 			set_1[i] = 1;
 		} else {
 			set_1[i] = 0;
@@ -517,7 +510,7 @@ __global__ void canonicityKernel(int *set_1, int *set_1_c, int *set_2,
 
 		// check intent set
 		if (intent[i] == 1) {
-			set_2_c++;
+			*set_2_c = *set_2_c + 1;
 			set_2[i] = 1;
 		} else {
 			set_2[i] = 0;
@@ -525,4 +518,15 @@ __global__ void canonicityKernel(int *set_1, int *set_1_c, int *set_2,
 	}
 }
 
-// **************************************************************************************************************
+// CUDA Kernel to check canonicity test set_1 and set_2 sets data
+__global__ void canonicityKernelSetCheck(int *set_1, int *set_2, bool *status,
+		int cols) {
+	int i = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if (i < cols && *status) {
+		if (set_1[i] != set_2[i]) {
+			*status = false;
+		}
+	}
+}
+
+// ******************************************************************************************************************
